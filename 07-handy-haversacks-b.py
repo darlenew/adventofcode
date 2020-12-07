@@ -2,7 +2,7 @@
 import re
 
 def parse_data(path):
-    bags = {} # maps bag style to a set of parent styles
+    bags = {} # maps bag style to list of two-tuples of the style and count of bags they contain
 
     child_re = re.compile(r'^ ([^ ])+ ([a-z0-9 ]+) bag.*$')
 
@@ -11,7 +11,7 @@ def parse_data(path):
             line = line.strip()
             parent, children = line.split("bags contain")
             parent = parent.strip()
-            bags.setdefault(parent, set()) 
+            bags.setdefault(parent, []) 
 
             for child in children.split(','):
                 if child == " no other bags.":
@@ -19,23 +19,23 @@ def parse_data(path):
 
                 m = child_re.match(child)
                 style = m.group(2)
-                bags.setdefault(style, set())
-                bags[style].add(parent)
-    
+                count = int(m.group(1))
+                bags[parent].append((style, count))
+
     return bags
 
-def get_ancestors(bags, style):
+def count_contains(bags, style):
+    """Returns the number of bags inside this bag style"""
     if not bags[style]:
-        return set()
+        return 0
 
-    parents = bags[style]
-    return parents.union(*[get_ancestors(bags, s) for s in parents]) 
+    return sum([t[1] + t[1] * count_contains(bags, t[0]) for t in bags[style]])
 
 
 bags = parse_data('07-handy-haversacks.txt')
 from pprint import pprint
 pprint(bags)
-num = len(get_ancestors(bags, "shiny gold"))
+num = count_contains(bags, "shiny gold")
 print(num)
 
 
